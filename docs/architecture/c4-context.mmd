@@ -1,0 +1,23 @@
+C4Context
+    title System Context - sysdhardener
+
+    Person(admin, "System Administrator", "Runs profiling and reviews provisional hardening.")
+    Person(dev, "Service Maintainer", "Reviews findings for service units.")
+
+    Enterprise_Boundary(host, "Host Environment (Linux)") {
+        System(sysdhardener, "sysdhardener CLI", "Profiles execution and emits provisional hardening.")
+        System_Ext(target, "Target Service Tree", "Observed service process and children.")
+        System_Ext(systemd, "systemd", "Provides service lifecycle and version.")
+        System_Ext(kernel, "Linux Kernel", "ptrace, cgroups, and optional eBPF tracing.")
+        System_Ext(fs, "Output Filesystem", "Stores configs, findings, reports, and logs.")
+    }
+
+    Rel(admin, sysdhardener, "Runs observe / attach")
+    Rel(dev, sysdhardener, "Reviews fixture output")
+
+    Rel(sysdhardener, target, "Spawns or attaches")
+    Rel(sysdhardener, kernel, "Captures syscalls / cgroups")
+    Rel(sysdhardener, systemd, "Checks systemd version")
+    Rel(sysdhardener, fs, "Writes configs, findings, logs")
+
+    UpdateLayoutConfig($c4ShapeInRow="2", $c4BoundaryInRow="1")

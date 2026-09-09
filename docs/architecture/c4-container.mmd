@@ -1,0 +1,34 @@
+C4Container
+    title Container / Component Pipeline - sysdhardener
+
+    Person(user, "User", "Runs observe, attach, or analyze-fixture.")
+
+    System_Ext(target, "Target Service Tree", "Observed service process and children.")
+    System_Ext(host_env, "Host OS & systemd", "ptrace, cgroups, and systemd version.")
+    System_Ext(storage, "Output Filesystem", "Stores configs and reports.")
+
+    Container_Boundary(sysdhardener, "sysdhardener Binary") {
+        Container(cli, "CLI & Preflight", "Rust / clap", "Parses commands and checks privileges.")
+        Container(observer, "Tracing Observers", "Rust / observer", "Traces process trees via ptrace or eBPF.")
+        Container(aggregator, "Evidence Aggregator", "Rust / core", "Groups events and tracks coverage.")
+        Container(version_gate, "Version Gate", "Rust / core", "Checks directive compatibility.")
+        Container(engine, "Recommendation Engine", "Rust / core", "Derives provisional directives from evidence.")
+        Container(projection, "Output Projection & Sinks", "Rust / core", "Renders configs, findings, and reports.")
+    }
+
+    Rel(user, cli, "Runs commands")
+    Rel(cli, observer, "Starts observation")
+    Rel(cli, aggregator, "Loads fixture")
+
+    Rel(observer, target, "Traces process tree")
+    Rel(observer, host_env, "Reads host telemetry")
+    Rel(observer, aggregator, "Streams events")
+
+    Rel(cli, version_gate, "Checks systemd version")
+    Rel(version_gate, engine, "Filters directives")
+
+    Rel(aggregator, engine, "Provides evidence")
+    Rel(engine, projection, "Provides recommendations")
+    Rel(projection, storage, "Writes reports")
+
+    UpdateLayoutConfig($c4ShapeInRow="2", $c4BoundaryInRow="1")

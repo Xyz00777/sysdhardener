@@ -1,0 +1,37 @@
+[package]
+name = "sysdhardener-core"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Domain types, ports, and typed errors for the sysdhardener deterministic evidence pipeline."
+
+[lints]
+workspace = true
+
+[dependencies]
+# `O_NOFOLLOW` for the sink open path; see the workspace justification.
+libc = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[features]
+# Deterministic capability fakes (`FixedCapabilityProbe`) for tests.
+# Off by default so production builds never carry test doubles; the
+# workspace verification gates run `--all-features` and the crate's own
+# tests enable it via the self dev-dependency below.
+testing = []
+
+[dev-dependencies]
+proptest = { workspace = true }
+insta = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+# Self dev-dependency: lets this crate's integration tests use the
+# feature-gated `FixedCapabilityProbe` under a plain `cargo test`.
+# The explicit version pins the requirement so cargo-deny does not
+# treat the self-reference as a wildcard.
+sysdhardener-core = { version = "0.1.0", path = ".", features = ["testing"] }

@@ -1,8 +1,8 @@
 { pkgs, bpfLinker }:
 
 # Single canonical dependency expression consumed by both the flake
-# (`flake.nix`) and the non-flake (`default.nix`) dev shell. ADR-0002 forbids
-# parallel package lists; any new tool must land here.
+# (`flake.nix`) and the non-flake (`default.nix`) dev shell. Any new tool
+# must land here.
 with pkgs;
 [
   # Repository and artifact inspection.
@@ -22,7 +22,7 @@ with pkgs;
   # the same compiler as the workspace build (no rustup channel
   # override). The eBPF build uses rustup for nightly-2026-09-07 and
   # the pinned upstream bpf-linker 0.11.1 release, built for LLVM 23.1.1.
-  # `cargo-nextest` and `cargo-deny` are the test/lint gates named in Todo 1.
+  # `cargo-nextest` and `cargo-deny` are used for tests and linting.
   rustc
   cargo
   clippy

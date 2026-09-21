@@ -13,8 +13,7 @@ ignore = []
 
 [licenses]
 version = 2
-# License allow-list is derived from the actual dep graph (see
-# `cargo deny list` output captured in the Todo 1 evidence). Adding a
+# License allow-list is derived from the dependency graph. Adding a
 # dep that uses a new license without updating this list will fail the
 # `cargo deny check` license gate, which is the intended behavior.
 allow = [

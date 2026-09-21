@@ -2,7 +2,7 @@
 # scripts/check-source-size.sh
 #
 # Enforce the project-wide 250-pure-LOC ceiling on every project `.rs` file.
-# "Pure LOC" is defined in the implementation plan (Scope section): every
+# "Pure LOC": every
 # physical line that is (a) non-blank after whitespace AND (b) whose first
 # non-whitespace character is NOT `//`, `/*`, `*`, or `*/`. Brace-only and
 # attribute lines count (they fail the comment test and pass the

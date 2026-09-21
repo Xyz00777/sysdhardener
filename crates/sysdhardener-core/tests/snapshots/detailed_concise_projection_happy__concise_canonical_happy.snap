@@ -1,0 +1,6 @@
+---
+source: crates/sysdhardener-core/tests/detailed_concise_projection_happy.rs
+expression: lines.join("\n")
+---
+# WARNING: settings below are provisional and unverified; validate before use.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

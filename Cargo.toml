@@ -64,8 +64,7 @@ missing_errors_doc = "allow"
 
 # Approved direct dependency stack. Versions live ONLY in the workspace
 # `[workspace.dependencies]` table; member crates inherit the version by
-# writing `dep = { workspace = true }`. New direct dependencies must be
-# justified against Todo 1 and the plan's "Must NOT have" list.
+# writing `dep = { workspace = true }`.
 [workspace.dependencies]
 clap = { version = "4.5", default-features = false, features = ["std", "usage", "help", "error-context", "suggestions", "derive"] }
 # `O_NOFOLLOW` constant for the sink open path. The tool is expected to

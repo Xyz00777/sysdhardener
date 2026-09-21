@@ -1,0 +1,35 @@
+{
+    "schema_version": 1,
+    "fixture_id": "happy-3events",
+    "first_timestamp_unix_ms": 1700000000000,
+    "last_timestamp_unix_ms": 1700000002000,
+    "coverage": "complete",
+    "seen_events": 3,
+    "dropped_events": 0,
+    "events": [
+        {
+            "source_id": "SRC-01",
+            "event_id": "evt-001",
+            "timestamp_unix_ms": 1700000000000,
+            "address_family": "unix",
+            "outcome": "success",
+            "args": "connect /var/run/sock"
+        },
+        {
+            "source_id": "SRC-01",
+            "event_id": "evt-002",
+            "timestamp_unix_ms": 1700000001000,
+            "address_family": "inet",
+            "outcome": "success",
+            "args": "bind 0.0.0.0:80"
+        },
+        {
+            "source_id": "SRC-01",
+            "event_id": "evt-003",
+            "timestamp_unix_ms": 1700000002000,
+            "address_family": "inet6",
+            "outcome": "success",
+            "args": "bind [::]:80"
+        }
+    ]
+}

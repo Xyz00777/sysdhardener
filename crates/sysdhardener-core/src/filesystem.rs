@@ -1,0 +1,271 @@
+//! Filesystem access aggregation and hardening recommendations.
+//!
+//! Provides observation-driven recommendations for systemd filesystem
+//! protection directives: `ProtectSystem=`, `ProtectHome=`,
+//! `ProtectControlGroups=`, and `ReadWritePaths=`.
+
+use crate::Capability;
+use crate::compatibility::{SupportStatus, VerificationStatus};
+use crate::finding::Finding;
+use crate::fixture::{CoverageQuality, EventOutcome};
+use crate::fs_cluster::{cluster_write_paths, touches};
+use crate::recommendation::{
+    CompatibilityRisk, EventLoss, FindingBasis, ProvisionalStatus, ValidationProcedure,
+};
+use crate::source_id::SourceId;
+
+/// An observed filesystem access event.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FsAccessEvent {
+    path: String,
+    is_write: bool,
+    outcome: EventOutcome,
+}
+
+impl FsAccessEvent {
+    /// Construct a new filesystem access event.
+    #[must_use]
+    pub fn new(path: impl Into<String>, is_write: bool, outcome: EventOutcome) -> Self {
+        Self {
+            path: crate::path_norm::normalize_path_str(&path.into()),
+            is_write,
+            outcome,
+        }
+    }
+
+    /// The accessed filesystem path.
+    #[must_use]
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    /// Whether this access was a write operation.
+    #[must_use]
+    pub const fn is_write(&self) -> bool {
+        self.is_write
+    }
+
+    /// The outcome of the access syscall.
+    #[must_use]
+    pub const fn outcome(&self) -> EventOutcome {
+        self.outcome
+    }
+}
+
+/// Aggregator of filesystem access events observed during trace.
+#[derive(Debug, Clone, Default)]
+pub struct FsAggregator {
+    events: Vec<FsAccessEvent>,
+}
+
+impl FsAggregator {
+    /// Construct a new empty aggregator.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Record an observed access event.
+    pub fn record(&mut self, event: FsAccessEvent) {
+        self.events.push(event);
+    }
+
+    /// Slice of all recorded events.
+    #[must_use]
+    pub fn events(&self) -> &[FsAccessEvent] {
+        &self.events
+    }
+
+    /// Build an aggregator from observed events by extracting filesystem evidence.
+    #[must_use]
+    pub fn from_events(events: &[crate::ObservedEvent]) -> Self {
+        let mut agg = Self::new();
+        for event in events {
+            if let Some(fs_event) = parse_fs_event(event) {
+                agg.record(fs_event);
+            }
+        }
+        agg
+    }
+}
+
+fn parse_fs_event(event: &crate::ObservedEvent) -> Option<FsAccessEvent> {
+    let args = event.args();
+    let path_start = if args.starts_with("path=") {
+        Some(0)
+    } else {
+        args.find(" path=").map(|i| i + 1)
+    }?;
+    let after_path = args.get(path_start + 5..)?;
+    let (path_str, is_write) = after_path.rfind(" write=").map_or_else(
+        || {
+            (
+                after_path.split_whitespace().next().unwrap_or(after_path),
+                false,
+            )
+        },
+        |write_idx| {
+            let p = after_path.get(..write_idx).unwrap_or(after_path);
+            let w = after_path
+                .get(write_idx + 7..)
+                .is_some_and(|s| s.starts_with("true"));
+            (p, w)
+        },
+    );
+    if path_str.is_empty() {
+        return None;
+    }
+    Some(FsAccessEvent::new(path_str, is_write, event.outcome()))
+}
+
+fn make_finding(
+    directive: &'static str,
+    recommended_value: Option<String>,
+    coverage: CoverageQuality,
+    event_loss: EventLoss,
+) -> Finding {
+    Finding {
+        directive,
+        basis: FindingBasis::Observation {
+            observed: Vec::new(),
+        },
+        observed_families: Vec::new(),
+        recommended_families: Vec::new(),
+        not_observed_families: Vec::new(),
+        recommended_capabilities: Vec::new(),
+        host_supported: true,
+        recommended_value,
+        provisional: ProvisionalStatus::Provisional,
+        coverage,
+        event_loss,
+        contradiction_conditions: Vec::new(),
+        compatibility_risk: CompatibilityRisk {
+            support: SupportStatus::Supported,
+            verification: VerificationStatus::Unverified,
+            source_ref: SourceId::from_static("SRC-01"),
+        },
+        validation_procedure: ValidationProcedure::ConfirmNoOutOfSetUse,
+        source_ids: vec![SourceId::from_static("SRC-01")],
+        aggregate_keys: Vec::new(),
+    }
+}
+
+/// Derive provisional filesystem hardening recommendations from observed accesses,
+/// taking into account event loss and host systemd version when available.
+#[must_use]
+pub fn derive_filesystem_findings_with_loss(
+    aggregator: &FsAggregator,
+    capability: Capability,
+    coverage: CoverageQuality,
+    event_loss: EventLoss,
+    host: Option<crate::systemd_version::SystemdVersion>,
+) -> Vec<Finding> {
+    let effective_coverage = crate::combine_visibility(capability, coverage);
+    let mut findings = Vec::new();
+
+    let mut usr_or_boot_written = false;
+    let mut etc_written = false;
+    let mut home_accessed = false;
+    let mut cgroups_written = false;
+
+    for event in aggregator.events() {
+        if event.outcome() == EventOutcome::Error || event.outcome() == EventOutcome::Interrupted {
+            continue;
+        }
+        let p = event.path();
+        home_accessed |= touches(p, "/home") || touches(p, "/root") || touches(p, "/run/user");
+        if event.is_write() {
+            usr_or_boot_written |= touches(p, "/usr") || touches(p, "/boot");
+            etc_written |= touches(p, "/etc");
+            cgroups_written |= touches(p, "/sys/fs/cgroup");
+        }
+    }
+
+    if !usr_or_boot_written {
+        let (val, rw) = if etc_written {
+            ("yes", false)
+        } else if host.is_some_and(|h| h.major < 232) {
+            ("full", false)
+        } else {
+            ("strict", true)
+        };
+        findings.push(make_finding(
+            "ProtectSystem",
+            Some(val.to_owned()),
+            effective_coverage,
+            event_loss,
+        ));
+        if rw {
+            let paths = cluster_write_paths(aggregator.events());
+            if !paths.is_empty() {
+                let s = paths
+                    .into_iter()
+                    .map(|p| {
+                        if p.contains(char::is_whitespace) {
+                            format!("\"{p}\"")
+                        } else {
+                            p
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                findings.push(make_finding(
+                    "ReadWritePaths",
+                    Some(s),
+                    effective_coverage,
+                    event_loss,
+                ));
+            }
+        }
+    }
+
+    if !home_accessed {
+        findings.push(make_finding(
+            "ProtectHome",
+            Some("yes".into()),
+            effective_coverage,
+            event_loss,
+        ));
+    }
+    if !cgroups_written {
+        findings.push(make_finding(
+            "ProtectControlGroups",
+            Some("yes".into()),
+            effective_coverage,
+            event_loss,
+        ));
+    }
+
+    findings
+}
+
+/// Derive provisional filesystem hardening recommendations from observed accesses,
+/// taking into account the host systemd version when available.
+#[must_use]
+pub fn derive_filesystem_findings_with_host(
+    aggregator: &FsAggregator,
+    capability: Capability,
+    coverage: CoverageQuality,
+    host: Option<crate::systemd_version::SystemdVersion>,
+) -> Vec<Finding> {
+    derive_filesystem_findings_with_loss(
+        aggregator,
+        capability,
+        coverage,
+        EventLoss {
+            seen_events: 0,
+            dropped_events: 0,
+        },
+        host,
+    )
+}
+
+/// Derive provisional filesystem hardening recommendations from observed accesses.
+#[must_use]
+pub fn derive_filesystem_findings(
+    aggregator: &FsAggregator,
+    capability: Capability,
+    coverage: CoverageQuality,
+) -> Vec<Finding> {
+    derive_filesystem_findings_with_host(aggregator, capability, coverage, None)
+}

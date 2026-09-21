@@ -5,15 +5,16 @@
 # `direnv allow`).
 target/
 
-# Cargo.lock is intentionally NOT ignored: the plan requires a
-# committed lockfile (`cargo sync` mode for the deterministic
-# fixture/report slice).
+# Cargo.lock is intentionally tracked for deterministic builds.
 
 # direnv cache (per-developer, reproducible).
 .direnv/
 
 # Agent orchestration state (plans, evidence, run continuation).
 .omo/
+
+# Local tool artifacts.
+.playwright-mcp/
 
 # Local nix store references (per-developer, reproducible).
 result*

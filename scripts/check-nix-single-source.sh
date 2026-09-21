@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/check-nix-single-source.sh
 #
-# Enforce ADR-0002: the flake and non-flake entry points must both consume
+# Enforce single dependency source: the flake and non-flake entry points must both consume
 # the single canonical dependency expression `nix/dependencies.nix`. If
 # either entry point ever carries an independent package list inside
 # `packages = [...]`, this script rejects the worktree.
@@ -36,9 +36,9 @@ for entry in "${REPO_ROOT}/flake.nix" "${REPO_ROOT}/default.nix"; do
   fi
   checked=$((checked + 1))
 
-  # ADR-0002: must import the single dependency expression.
+  # Must import the single dependency expression.
   if ! grep -q "import ./nix/dependencies.nix\|import .*nix/dependencies.nix" "$entry"; then
-    echo "FAIL ${entry}: does not import nix/dependencies.nix (ADR-0002 violation)" >&2
+    echo "FAIL ${entry}: does not import nix/dependencies.nix" >&2
     status=1
     continue
   fi

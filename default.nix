@@ -3,8 +3,8 @@
 }:
 
 # Keep the non-flake shell on the same package expression as flake.nix.
-# (ADR-0002: both entry points consume `nix/dependencies.nix` and that
-# file is the single source of truth.)
+# (Both entry points consume `nix/dependencies.nix` and that file is the
+# single source of truth.)
 #
 # The host nixpkgs is unconstrained (the caller passes it, or the implicit
 # `<nixpkgs>` is resolved by their nix-channel). If the host nixpkgs

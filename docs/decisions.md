@@ -1,6 +1,6 @@
 # Design Decisions
 
-This document records the decisions that shape the implemented thesis slice. It replaces the historical ADR directory with a concise decision record. Open research questions remain explicitly marked; this document does not claim that the deferred runtime topology or professor gate is resolved.
+This document records the architectural and design decisions of sysdhardener. Open research questions remain explicitly marked.
 
 ## Reference environment and tooling
 

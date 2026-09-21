@@ -1,0 +1,27 @@
+{
+    "schema_version": 1,
+    "fixture_id": "contradictory-evidence",
+    "first_timestamp_unix_ms": 1700000000000,
+    "last_timestamp_unix_ms": 1700000002000,
+    "coverage": "degraded",
+    "seen_events": 2,
+    "dropped_events": 0,
+    "events": [
+        {
+            "source_id": "SRC-01",
+            "event_id": "evt-001",
+            "timestamp_unix_ms": 1700000000000,
+            "address_family": "unix",
+            "outcome": "success",
+            "args": "connect /var/run/sock"
+        },
+        {
+            "source_id": "SRC-02",
+            "event_id": "evt-002",
+            "timestamp_unix_ms": 1700000002000,
+            "address_family": "netlink",
+            "outcome": "error",
+            "args": "bind NETLINK_ROUTE"
+        }
+    ]
+}

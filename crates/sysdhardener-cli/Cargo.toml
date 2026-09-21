@@ -1,0 +1,46 @@
+[package]
+name = "sysdhardener-cli"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "CLI binary for sysdhardener; exposes the deterministic fixture-only analyze-fixture command and maps typed outcomes to process exit codes."
+
+[[bin]]
+name = "sysdhardener"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+sysdhardener-core = { path = "../sysdhardener-core", version = "0.1.0" }
+sysdhardener-observer = { path = "../sysdhardener-observer", version = "0.1.0" }
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[features]
+# The eBPF observation mode (`bpf-observe`): pulls in the aya-based
+# loader. Off by default so the default binary stays lean (no aya
+# dependency); enabled with `--features bpf-observe`.
+bpf-observe = ["dep:sysdhardener-bpf-loader"]
+
+[dependencies.sysdhardener-bpf-loader]
+path = "../sysdhardener-bpf-loader"
+version = "0.1.0"
+optional = true
+
+[dev-dependencies]
+assert_cmd = { workspace = true }
+predicates = { workspace = true }
+# Test-only fixtures: unique process-private tempdirs, and direct
+# JSON inspection of the report envelope v1. The library already
+# pulls serde_json in; the CLI only needs it for the test file.
+tempfile = { version = "3", default-features = false }
+serde_json = { workspace = true }
+# The syscall target binary for the `observe` E2E tests.
+sysdhardener-observer = { path = "../sysdhardener-observer", version = "0.1.0", features = ["test-target"] }
+# `kill` for the systemd-stop E2E test.
+libc = { workspace = true }

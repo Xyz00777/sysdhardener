@@ -1,0 +1,101 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/sysdhardener-core",
+    "crates/sysdhardener-observer",
+    "crates/sysdhardener-bpf-loader",
+    "crates/sysdhardener-wire-format",
+    "crates/sysdhardener-cli",
+]
+# The eBPF program crate requires a nightly toolchain (aya-ebpf needs
+# `asm_experimental_arch`) + the `bpfel-unknown-none` target; it is
+# built on a nightly-capable host, not by stable CI.
+exclude = ["crates/sysdhardener-ebpf"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0 OR MIT"
+publish = false
+
+# Strict workspace lints shared by every member crate. Member crates opt in
+# with `[lints] workspace = true`; see their Cargo.toml.
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unreachable_pub = "warn"
+unused_must_use = "deny"
+elided_lifetimes_in_paths = "warn"
+non_ascii_idents = "deny"
+trivial_numeric_casts = "warn"
+unused_lifetimes = "warn"
+single_use_lifetimes = "warn"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+
+# Hard denies - turn sharp tools into errors.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+unreachable = "deny"
+indexing_slicing = "deny"
+mem_forget = "deny"
+as_underscore = "deny"
+as_ptr_cast_mut = "deny"
+fn_to_numeric_cast_any = "deny"
+allow_attributes_without_reason = "warn"
+dbg_macro = "warn"
+print_stderr = "warn"
+print_stdout = "warn"
+use_debug = "warn"
+exit = "deny"
+
+# Stylistic relaxations (project-wide opinions only).
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+
+# Approved direct dependency stack. Versions live ONLY in the workspace
+# `[workspace.dependencies]` table; member crates inherit the version by
+# writing `dep = { workspace = true }`. New direct dependencies must be
+# justified against Todo 1 and the plan's "Must NOT have" list.
+[workspace.dependencies]
+clap = { version = "4.5", default-features = false, features = ["std", "usage", "help", "error-context", "suggestions", "derive"] }
+# `O_NOFOLLOW` constant for the sink open path. The tool is expected to
+# run as root, and `File::create` follows symlinks; opening the sink
+# destination with O_NOFOLLOW prevents a pre-placed symlink in an
+# attacker-writable directory from redirecting the write. std does not
+# expose O_NOFOLLOW, so the minimal `libc` crate (a transitive
+# dependency of the std toolchain) supplies the flag.
+libc = { version = "0.2", default-features = false }
+serde = { version = "1.0", default-features = false, features = ["derive", "std"] }
+serde_json = { version = "1.0", default-features = false, features = ["std"] }
+thiserror = { version = "2.0", default-features = false }
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "env-filter", "std"] }
+
+# Test / dev-only dependencies.
+proptest = { version = "1.5", default-features = false, features = ["std"] }
+insta = { version = "1.41", default-features = false }
+assert_cmd = { version = "2.0", default-features = true }
+predicates = { version = "3.1", default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+debug = "line-tables-only"
+
+[profile.dev]
+opt-level = 0
+debug = true
+incremental = true

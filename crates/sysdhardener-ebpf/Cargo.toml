@@ -1,0 +1,16 @@
+[package]
+name = "sysdhardener-ebpf"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "In-kernel eBPF program for sysdhardener: captures socket-family evidence per target cgroup and streams it to the loader via a ring buffer."
+
+# Excluded from the workspace (nightly + `bpfel-unknown-none` +
+# `bpf-linker` only), so workspace inheritance is unavailable and the
+# values above are explicit. `workspace = true` here breaks parsing.
+
+[dependencies]
+aya-ebpf = "0.2"
+sysdhardener-wire-format = { path = "../sysdhardener-wire-format", version = "0.1.0" }

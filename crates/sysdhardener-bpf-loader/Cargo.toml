@@ -1,0 +1,26 @@
+[package]
+name = "sysdhardener-bpf-loader"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Loads and attaches the sysdhardener eBPF program to a target cgroup, reads the event ring buffer, and decodes events for the observer."
+
+[lints]
+workspace = true
+
+[dependencies]
+aya = "0.14"
+libc = { workspace = true }
+sysdhardener-core = { path = "../sysdhardener-core", version = "0.1.0" }
+sysdhardener-wire-format = { path = "../sysdhardener-wire-format", version = "0.1.0" }
+thiserror = { workspace = true }
+
+[features]
+default = []
+
+[dev-dependencies]
+# For matching the loader's `ParseError::NoBTF` discriminant in the
+# environment-gated shipped-object test.
+aya-obj = "0.3"

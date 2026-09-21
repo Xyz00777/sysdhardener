@@ -1,0 +1,9 @@
+# Scoped to the eBPF crate: pass `--btf` to bpf-linker AND keep FULL
+# DWARF (`-C debuginfo=2`), because bpf-linker generates the
+# `.BTF`/`.BTF.ext` sections from the object's DWARF type info.
+# `debuginfo=1` (line-tables-only) yields BTF without types, so the
+# loader cannot register the BTF maps and the relocation fails with
+# `SectionNotFound`. Without debuginfo the object has no BTF at all
+# and the loader rejects it with `ParseError::NoBTF`.
+[target.bpfel-unknown-none]
+rustflags = ["-C", "link-arg=--btf", "-C", "debuginfo=2"]

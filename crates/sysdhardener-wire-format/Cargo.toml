@@ -1,0 +1,11 @@
+[package]
+name = "sysdhardener-wire-format"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Shared wire format between the sysdhardener eBPF program and its user-space loader: the SockEvent ring-buffer layout and its decoder."
+
+[lints]
+workspace = true

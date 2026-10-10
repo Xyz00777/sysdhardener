@@ -14,9 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: 1.87.0
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@v2
@@ -25,6 +28,24 @@ jobs:
       # scripts/ci.sh; this job runs it so local and CI cannot drift.
       - name: ci.sh (fmt, clippy, test, size, nix-single-source)
         run: bash scripts/ci.sh
+
+  release-metadata:
+    name: release-metadata
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Require a higher version and changelog entry
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: python3 scripts/check-release-metadata.py
 
   deny:
     name: cargo-deny

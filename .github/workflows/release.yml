@@ -38,15 +38,20 @@ jobs:
           previous="$(git show "${BEFORE_SHA}:crates/sysdhardener-cli/Cargo.toml" | python3 -c 'import sys, tomllib; print(tomllib.loads(sys.stdin.read())["package"]["version"])')"
           current="$(python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("crates/sysdhardener-cli/Cargo.toml").read_text())["package"]["version"])')"
           echo "tag=v${current}" >> "$GITHUB_OUTPUT"
-          if [[ "$previous" == "$current" ]]; then
+          if [[ "$previous" != "$current" ]]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "validate_metadata=true" >> "$GITHUB_OUTPUT"
+          elif git ls-remote --exit-code origin "refs/tags/v${current}" >/dev/null 2>&1; then
             echo "should_release=false" >> "$GITHUB_OUTPUT"
-            echo "No CLI version change ($current); skipping release."
+            echo "Release tag v${current} already exists; skipping release."
           else
             echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "validate_metadata=false" >> "$GITHUB_OUTPUT"
+            echo "No release tag exists for v${current}; retrying publication."
           fi
 
       - name: Validate version and changelog
-        if: steps.version.outputs.should_release == 'true'
+        if: steps.version.outputs.validate_metadata == 'true'
         env:
           RELEASE_BASE_REF: ${{ github.event.before }}
         run: python3 scripts/check-release-metadata.py

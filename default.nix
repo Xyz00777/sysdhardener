@@ -8,7 +8,7 @@
 #
 # The host nixpkgs is unconstrained (the caller passes it, or the implicit
 # `<nixpkgs>` is resolved by their nix-channel). If the host nixpkgs
-# ships rustc older than the workspace MSRV (1.85), the shell fails
+# ships rustc older than the workspace MSRV (1.87), the shell fails
 # immediately with a clear assertion message rather than silently
 # entering a shell that cannot build the workspace.
 
@@ -29,12 +29,12 @@ let
   rustcMajor = pkgs.lib.toInt (pkgs.lib.elemAt rustcVersionParts 0);
   rustcMinor = pkgs.lib.toInt (pkgs.lib.elemAt rustcVersionParts 1);
   msrvMajor = 1;
-  msrvMinor = 85;
+  msrvMinor = 87;
   msrvOk =
     hasRustc && ((rustcMajor > msrvMajor) || (rustcMajor == msrvMajor && rustcMinor >= msrvMinor));
 in
 assert pkgs.lib.assertMsg msrvOk
-  "sysdhardener: host nixpkgs rustc is ${rustcVersion}, but the workspace requires MSRV ${toString msrvMajor}.${toString msrvMinor}. Use the flake (nix develop) which pins nixpkgs to a release that ships rustc >=1.85, or override `pkgs` with a newer nixpkgs attribute path.";
+  "sysdhardener: host nixpkgs rustc is ${rustcVersion}, but the workspace requires MSRV ${toString msrvMajor}.${toString msrvMinor}. Use the flake (nix develop) which pins nixpkgs to a release that ships rustc >=1.87, or override `pkgs` with a newer nixpkgs attribute path.";
 pkgs.mkShell {
   packages = dependencies;
   shellHook = ''

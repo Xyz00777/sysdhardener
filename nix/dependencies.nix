@@ -18,7 +18,7 @@ with pkgs;
   shellcheck
 
   # Rust and eBPF toolchains. The locked nixpkgs (nixos-26.05) ships rustc 1.97.1,
-  # which is greater than the workspace MSRV 1.85; the dev shell uses
+  # which is greater than the workspace MSRV 1.87; the dev shell uses
   # the same compiler as the workspace build (no rustup channel
   # override). The eBPF build uses rustup for nightly-2026-09-07 and
   # the pinned upstream bpf-linker 0.11.1 release, built for LLVM 23.1.1.

@@ -2,12 +2,12 @@
 # Channel pin matches the MSRV in the root Cargo.toml. The dev shell
 # (`nix develop`) is the canonical source of `rustc`/`cargo`/`clippy`/
 # `rustfmt`/etc.; the Nix flake pins nixpkgs to `nixos-26.05` which
-# ships rustc 1.97.1 (>= MSRV 1.85). This file is a documentation marker
+# ships rustc 1.97.1 (>= MSRV 1.87). This file is a documentation marker
 # so tools that read it (rustup, cargo on a developer's machine
 # outside the Nix shell) know the workspace's minimum supported
 # version. It does NOT override the compiler inside `nix develop`,
 # because no `rustup` is on the PATH inside the dev shell and Cargo
 # uses the compiler that Nix provides.
-channel = "1.85.0"
+channel = "1.87.0"
 components = ["rustfmt", "clippy"]
 profile = "default"

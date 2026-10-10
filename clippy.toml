@@ -5,7 +5,7 @@ too-many-arguments-threshold = 6
 too-many-lines-threshold = 100
 
 # msrv - keeps clippy from suggesting features past our MSRV.
-msrv = "1.85"
+msrv = "1.87"
 
 # Permit unwrap/expect/panic/print/dbg inside #[cfg(test)] targets.
 allow-unwrap-in-tests = true

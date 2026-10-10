@@ -2,7 +2,7 @@
 name = "sysdhardener-ebpf"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.87"
 license = "Apache-2.0 OR MIT"
 publish = false
 description = "In-kernel eBPF program for sysdhardener: captures socket-family evidence per target cgroup and streams it to the loader via a ring buffer."

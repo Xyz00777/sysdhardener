@@ -15,7 +15,7 @@ exclude = ["crates/sysdhardener-ebpf"]
 [workspace.package]
 edition = "2024"
 rust-version = "1.85"
-license = "Apache-2.0 OR MIT"
+license = "MIT"
 publish = false
 
 # Strict workspace lints shared by every member crate. Member crates opt in

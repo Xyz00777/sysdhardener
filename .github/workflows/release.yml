@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           previous="$(git show "${BEFORE_SHA}:crates/sysdhardener-cli/Cargo.toml" | python3 -c 'import sys, tomllib; print(tomllib.loads(sys.stdin.read())["package"]["version"])')"
-          current="$(python3 -c 'import tomllib; print(tomllib.loads(open("crates/sysdhardener-cli/Cargo.toml", "rb").read())["package"]["version"])')"
+          current="$(python3 -c 'import tomllib; from pathlib import Path; print(tomllib.loads(Path("crates/sysdhardener-cli/Cargo.toml").read_text())["package"]["version"])')"
           echo "tag=v${current}" >> "$GITHUB_OUTPUT"
           if [[ "$previous" == "$current" ]]; then
             echo "should_release=false" >> "$GITHUB_OUTPUT"

@@ -133,19 +133,19 @@ impl SinkWriteReport {
 
     /// `true` if at least one selected sink failed.
     #[must_use]
-    pub fn any_failed(&self) -> bool {
+    pub const fn any_failed(&self) -> bool {
         !self.failures.is_empty()
     }
 
     /// Number of selected sinks that failed.
     #[must_use]
-    pub fn failure_count(&self) -> usize {
+    pub const fn failure_count(&self) -> usize {
         self.failures.len()
     }
 
     /// Number of selected sinks that succeeded.
     #[must_use]
-    pub fn success_count(&self) -> usize {
+    pub const fn success_count(&self) -> usize {
         self.successes.len()
     }
 }

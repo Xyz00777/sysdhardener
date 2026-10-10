@@ -155,7 +155,7 @@ impl DetailedEntry {
     /// Returns `None` when the entry has no observed recommendation
     /// and is fully unknown.
     #[must_use]
-    pub fn found(&self) -> Option<&'static str> {
+    pub const fn found(&self) -> Option<&'static str> {
         if self.recommended_families.is_empty()
             && self.recommended_capabilities.is_empty()
             && self.recommended_value.is_none()

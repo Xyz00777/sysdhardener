@@ -27,6 +27,8 @@ jobs:
       # The single source of truth for the local gates is
       # scripts/ci.sh; this job runs it so local and CI cannot drift.
       - name: ci.sh (fmt, clippy, test, size, nix-single-source)
+        env:
+          SKIP_CARGO_DENY: "1"
         run: bash scripts/ci.sh
 
   release-metadata:

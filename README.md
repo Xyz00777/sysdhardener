@@ -122,6 +122,18 @@ The CLI uses distinct, machine-parsable exit codes:
 
 ## Building and Development
 
+### Download a release
+
+Download the latest Linux x86-64 archive from the [GitHub Releases page](https://github.com/Xyz00777/sysdhardener/releases/latest). Verify it with the accompanying SHA-256 file, then extract and run it:
+
+```sh
+sha256sum --check sysdhardener-linux-x86_64.tar.gz.sha256
+tar -xzf sysdhardener-linux-x86_64.tar.gz
+./sysdhardener --help
+```
+
+The archive contains the executable, this README, and the MIT license. The binary is dynamically linked and requires glibc 2.35 or newer; a statically linked musl build is not provided.
+
 ### Development Environment (Nix & direnv)
 
 The repository provides a reproducible development environment with Nix flakes:

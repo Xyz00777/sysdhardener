@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: publish-linux-x86_64
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.87.0
+
+      - name: Detect version bump
+        id: version
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          previous="$(git show "${BEFORE_SHA}:crates/sysdhardener-cli/Cargo.toml" | python3 -c 'import sys, tomllib; print(tomllib.loads(sys.stdin.read())["package"]["version"])')"
+          current="$(python3 -c 'import tomllib; print(tomllib.loads(open("crates/sysdhardener-cli/Cargo.toml", "rb").read())["package"]["version"])')"
+          echo "tag=v${current}" >> "$GITHUB_OUTPUT"
+          if [[ "$previous" == "$current" ]]; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "No CLI version change ($current); skipping release."
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate version and changelog
+        if: steps.version.outputs.should_release == 'true'
+        env:
+          RELEASE_BASE_REF: ${{ github.event.before }}
+        run: python3 scripts/check-release-metadata.py
+
+      - name: Check whether the release already exists
+        id: existing
+        if: steps.version.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "GitHub Release $TAG already exists; skipping duplicate publication."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build Linux x86-64 executable
+        if: steps.version.outputs.should_release == 'true' && steps.existing.outputs.exists == 'false'
+        run: cargo build --locked --release --target x86_64-unknown-linux-gnu -p sysdhardener-cli --bin sysdhardener
+
+      - name: Smoke-test executable
+        if: steps.version.outputs.should_release == 'true' && steps.existing.outputs.exists == 'false'
+        run: ./target/x86_64-unknown-linux-gnu/release/sysdhardener --help
+
+      - name: Package executable and checksum
+        if: steps.version.outputs.should_release == 'true' && steps.existing.outputs.exists == 'false'
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir release-assets
+          cp target/x86_64-unknown-linux-gnu/release/sysdhardener release-assets/
+          cp README.md LICENSE release-assets/
+          tar -C release-assets -czf "sysdhardener-linux-x86_64.tar.gz" sysdhardener README.md LICENSE
+          sha256sum sysdhardener-linux-x86_64.tar.gz > sysdhardener-linux-x86_64.tar.gz.sha256
+          python3 - "$TAG" <<'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          version = sys.argv[1][1:]
+          lines = Path("CHANGELOG.md").read_text(encoding="utf-8").splitlines()
+          heading = f"## [{version}]"
+          start = lines.index(heading) + 1
+          notes = []
+          for line in lines[start:]:
+              if line.startswith("## "):
+                  break
+              notes.append(line)
+          notes_text = "\n".join(notes).strip()
+          if not notes_text:
+              raise SystemExit(f"No changelog notes found for {version}")
+          Path(os.environ["GITHUB_WORKSPACE"], "release-notes.md").write_text(
+              notes_text + "\n", encoding="utf-8"
+          )
+          PY
+
+      - name: Publish GitHub Release
+        if: steps.version.outputs.should_release == 'true' && steps.existing.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release create "$TAG" sysdhardener-linux-x86_64.tar.gz sysdhardener-linux-x86_64.tar.gz.sha256 --title "$TAG" --notes-file release-notes.md

@@ -52,7 +52,7 @@ This automatically provisions Rust, Cargo, `clippy`, `rustfmt`, `cargo-deny`, `b
 ### Option B: Standard Toolchain
 
 If you prefer using your host's toolchain, ensure you have:
-- **Rust:** Version 1.85 or newer.
+- **Rust:** Version 1.87 or newer.
 - **Tools:** `cargo`, `rustfmt`, `clippy`, and `cargo-deny`.
 
 ---
@@ -139,3 +139,11 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `chore:` Tooling, dependency updates, or script adjustments.
 
 Keep commit messages concise, technical, and focused on the *what* and *why*.
+
+---
+
+## 8. Release Version and Changelog
+
+Every pull request merged to `main` must raise the `version` in `crates/sysdhardener-cli/Cargo.toml` above the version on the base branch and add a non-empty matching `## [MAJOR.MINOR.PATCH]` section to [`CHANGELOG.md`](CHANGELOG.md). The required `release-metadata` check enforces both requirements. Use stable `MAJOR.MINOR.PATCH` versions.
+
+When a version bump reaches `main`, GitHub Actions builds and smoke-tests the `x86_64-unknown-linux-gnu` executable, then publishes it with the matching changelog notes and a SHA-256 checksum. Configure branch protection to require the `release-metadata` check and require pull request branches to be up to date with `main` (or use a merge queue), so concurrent pull requests cannot merge against a stale version baseline.

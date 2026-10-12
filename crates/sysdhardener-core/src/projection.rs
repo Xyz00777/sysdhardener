@@ -40,6 +40,24 @@ use crate::recommendation::{
 pub const CONCISE_WARNING: &str =
     "# WARNING: settings below are provisional and unverified; validate before use.";
 
+#[allow(
+    clippy::indexing_slicing,
+    reason = "equal lengths and loop bounds prove both byte indices are valid"
+)]
+const fn bytes_equal(left: &[u8], right: &[u8]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut index = 0;
+    while index < left.len() {
+        if left[index] != right[index] {
+            return false;
+        }
+        index += 1;
+    }
+    true
+}
+
 /// One detailed projection entry, derived from one immutable
 /// [`Finding`].
 ///
@@ -175,9 +193,24 @@ impl DetailedEntry {
     pub const fn validation_procedure_text(&self) -> &'static str {
         match self.validation_procedure {
             ValidationProcedure::ConfirmNoOutOfSetUse => {
-                "Apply the candidate to a test unit, run the expected workload, and confirm \
-                 no family outside the recommended allow-list is used before treating the \
-                 candidate as validated."
+                let directive = self.directive.as_bytes();
+                if bytes_equal(directive, b"RestrictAddressFamilies") {
+                    "Run the expected workload in a test unit and confirm all required socket address families are permitted."
+                } else if bytes_equal(directive, b"ProtectSystem") {
+                    "Run the expected workload in a test unit and confirm required system-file writes still succeed."
+                } else if bytes_equal(directive, b"ProtectHome") {
+                    "Run the expected workload in a test unit and confirm required home-path reads and writes still succeed."
+                } else if bytes_equal(directive, b"ReadWritePaths") {
+                    "Run the expected workload in a test unit and confirm writes are confined to the listed paths."
+                } else if bytes_equal(directive, b"ProtectControlGroups") {
+                    "Run the expected workload in a test unit and confirm it does not require writable cgroup files."
+                } else if bytes_equal(directive, b"CapabilityBoundingSet")
+                    || bytes_equal(directive, b"AmbientCapabilities")
+                {
+                    "Run the expected workload in a test unit and confirm required privileged operations still succeed."
+                } else {
+                    "Run the expected workload in a test unit and confirm the candidate does not prevent required behavior."
+                }
             }
         }
     }

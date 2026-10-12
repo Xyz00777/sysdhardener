@@ -46,9 +46,9 @@ Validation is deterministic-first: typed unit/mapping tests, scenario fixtures, 
 ## Status of implementation and boundaries
  
 The CLI implementation resolves:
-- Reference baseline: verified on Ubuntu 26.04 LTS, kernel 7.0, systemd 259, cgroup v2.
-- Runtime observation: both `ExecStart=` / transient launch (`observe`) and direct side-channel attachment (`attach` / eBPF cgroup) are implemented and verified.
+- Reference baseline: verified on Ubuntu 26.04, kernel 7.0.0-15, systemd 259.5, and Redis 8.0.5.
+- Runtime observation: `observe` and `attach`/eBPF implementations have code/test evidence; fixture and CLI tests do not by themselves establish disposable-VM runtime enforcement.
 - Dynamic compatibility: the host's systemd version is probed at runtime to gate directives.
-- Filesystem sandboxing: implemented with both ptrace fallback (path string capture via procfs / `process_vm_readv`) and eBPF wire event bridge, deriving `ProtectSystem=`, `ProtectHome=`, `ProtectControlGroups=`, and prefix-clustered `ReadWritePaths=`.
+- Filesystem recommendation generation: implemented with ptrace fallback (path string capture via procfs / `process_vm_readv`) and eBPF wire event bridge. It derives candidate `ProtectSystem=`, `ProtectHome=`, `ProtectControlGroups=`, and prefix-clustered `ReadWritePaths=` settings. One fresh transient-unit run confirmed the recorded home-read-only and `/root/data` exception behavior; other generated directives, versions, and workloads remain unverified.
 - Evidence aggregation: in-memory recommendation-local aggregates per CLI run.
 - Operational model: strictly on-demand CLI profiling; permanent background daemonization is explicitly out of scope.

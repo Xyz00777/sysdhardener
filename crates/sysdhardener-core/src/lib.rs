@@ -29,6 +29,7 @@ mod capability;
 mod compatibility;
 mod error;
 pub mod filesystem;
+mod filesystem_path;
 mod finding;
 mod fixture;
 mod fixture_event_source;

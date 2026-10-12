@@ -111,6 +111,27 @@ fn observe_compute_target_without_network_or_capabilities_succeeds_with_no_findi
 }
 
 #[test]
+fn observe_reports_nonzero_target_status_but_keeps_analysis_success_exit() {
+    let dir = unique_tempdir("observe-nonzero-target");
+    let output = Command::new(binary_path())
+        .arg("observe")
+        .arg("--output-dir")
+        .arg(dir.path())
+        .arg("sh")
+        .arg("-c")
+        .arg("exit 23")
+        .output()
+        .expect("observe runs");
+
+    assert_eq!(output.status.code(), Some(0));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("target_exit_code=23"), "stderr: {stderr}");
+    assert!(stderr.contains("captured_events="), "stderr: {stderr}");
+    assert!(dir.path().join("findings.txt").is_file());
+    assert!(dir.path().join("hardening.conf").is_file());
+}
+
+#[test]
 fn observe_with_json_writes_report_envelope() {
     let dir = unique_tempdir("observe-json");
     let json_path = dir.path().join("report.json");

@@ -56,6 +56,7 @@ use crate::tracee::{
     TraceeState, clean_up_tracees, handle_fork_event, handle_tracee_exit, is_fork_event,
     register_new_tracee, resume, setup_trace_options, wait_for_stop,
 };
+use crate::{ObservationResult, TargetStatus, process_status::TraceCapture};
 
 /// The tracing mode: spawn a child or attach to an existing process tree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,12 +114,23 @@ pub(super) static OBSERVE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(())
 /// Returns [`ObserveError`] when the target cannot be spawned or the
 /// wait loop hits an unexpected state.
 pub fn observe_command(command: &mut Command) -> Result<Vec<ObservedEvent>, ObserveError> {
+    observe_command_with_status(command).map(ObservationResult::into_events)
+}
+
+/// Spawn `command` and capture process-tree events with its main-process status.
+///
+/// # Errors
+/// Returns [`ObserveError`] when spawning or tracing fails.
+pub fn observe_command_with_status(
+    command: &mut Command,
+) -> Result<ObservationResult, ObserveError> {
     let _guard = OBSERVE_LOCK
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let _sig_guard = install_forward_handlers();
     let pid = spawn_tracee(command)?;
-    run_trace_loop(&[pid], TraceMode::Spawn, None)
+    let capture = run_trace_loop(&[pid], TraceMode::Spawn, None)?;
+    Ok(ObservationResult::new(capture.events, capture.main_status))
 }
 
 fn build_child_env(command: &Command) -> Result<Option<Vec<CString>>, ObserveError> {
@@ -235,11 +247,12 @@ pub(super) fn run_trace_loop(
     initial_pids: &[libc::pid_t],
     mode: TraceMode,
     duration_ms: Option<u64>,
-) -> Result<Vec<ObservedEvent>, ObserveError> {
+) -> Result<TraceCapture, ObserveError> {
     let deadline = init_deadline(duration_ms)?;
     let main_pid = initial_pids.first().copied().unwrap_or(0);
     // Parent: drive the trace loop over the whole process tree.
     let mut events: Vec<ObservedEvent> = Vec::new();
+    let mut main_status = TargetStatus::Unknown;
     let mut tracees: HashMap<libc::pid_t, TraceeState> = initial_pids
         .iter()
         .map(|&p| (p, TraceeState::new()))
@@ -272,6 +285,9 @@ pub(super) fn run_trace_loop(
             continue;
         }
         if libc::WIFEXITED(status) || libc::WIFSIGNALED(status) {
+            if waited == main_pid && mode == TraceMode::Spawn {
+                main_status = TargetStatus::from_wait_status(status);
+            }
             match handle_tracee_exit(waited, status, main_pid, mode, guard.tracees) {
                 Ok(true) => break,
                 Ok(false) => continue,
@@ -362,5 +378,8 @@ pub(super) fn run_trace_loop(
         }
     }
 
-    Ok(events)
+    Ok(TraceCapture {
+        events,
+        main_status,
+    })
 }

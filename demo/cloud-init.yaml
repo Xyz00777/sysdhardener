@@ -1,0 +1,21 @@
+#cloud-config
+disable_root: false
+ssh_pwauth: true
+
+users:
+  - name: root
+    lock_passwd: false
+    plain_text_passwd: sysdhardener
+
+chpasswd:
+  expire: false
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-sysdhardener-demo.conf
+    permissions: '0644'
+    content: |
+      PermitRootLogin yes
+      PasswordAuthentication yes
+
+runcmd:
+  - systemctl restart ssh

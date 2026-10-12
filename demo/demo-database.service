@@ -1,0 +1,12 @@
+[Unit]
+Description=Official Redis Database Server (sysdhardener demo)
+After=network.target
+
+# Note: Running ./demo/setup_demo.sh will customize User, WorkingDirectory, and ExecStart for your environment.
+[Service]
+Type=simple
+ExecStart=/usr/bin/redis-server demo/redis.conf
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

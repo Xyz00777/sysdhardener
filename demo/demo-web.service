@@ -1,0 +1,12 @@
+[Unit]
+Description=Demo Web Frontend Portal (sysdhardener demo)
+After=network.target demo-database.service
+
+# Note: Running ./demo/setup_demo.sh will customize User, WorkingDirectory, and ExecStart for your environment.
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 demo/web_frontend.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

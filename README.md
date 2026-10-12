@@ -29,8 +29,8 @@ It acts as a **recommendation engine only**: it derives candidate configurations
 
 - **Live Process Tracing (`observe`):** Spawns your application under a `ptrace` observer, tracking all forks, threads, and child processes to capture network socket creation, Linux capabilities, and filesystem write paths.
 - **Process Attachment (`attach`):** Attaches non-invasively via `PTRACE_SEIZE` to an already-running service daemon (or via eBPF cgroup hooks with `--features bpf-observe`).
-- **Dynamic Host Version Gating:** Probes the target host's `systemd` version at runtime to omit directives unsupported by your system (e.g. `RestrictAddressFamilies=` on versions older than v235).
-- **Two-View Output Sinks:** Emits both a ready-to-use drop-in configuration (`hardening.conf`) and a transparent human-readable audit log (`findings.txt`).
+- **Dynamic Host Version Gating:** Probes the target host's `systemd` version at runtime to omit directives unsupported by your system (for example, `RestrictAddressFamilies=` is available since v211).
+- **Two-View Output Sinks:** Emits a provisional drop-in candidate (`hardening.conf`) and a transparent human-readable audit log (`findings.txt`) for review and validation.
 - **Structured Uncertainty & Provenance:** Outputs an optional machine-readable JSON report (`report.json`) detailing basis evidence, observation gaps, and unverified edge cases.
 - **Deterministic Fixture Replay (`analyze-fixture`):** Allows analyzing pre-captured trace envelopes for reproducible testing and CI pipelines.
 
@@ -74,9 +74,7 @@ Running `sysdhardener` produces separate, purpose-built files in `--output-dir`:
 ### 1. `hardening.conf` (Concise systemd Drop-In)
 A configuration fragment ready for inspection and placement under `/etc/systemd/system/<unit>.service.d/`:
 ```ini
-# WARNING: Provisional hardening settings derived from syscall observation.
-# Validate thoroughly in a staging environment before deployment.
-[Service]
+# WARNING: settings below are provisional and unverified; validate before use.
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 CapabilityBoundingSet=~CAP_SYS_ADMIN ~CAP_NET_ADMIN
 AmbientCapabilities=
@@ -85,6 +83,7 @@ ProtectHome=yes
 ProtectControlGroups=yes
 ReadWritePaths=/var/log/my-service /var/lib/my-service
 ```
+*(This illustrative fragment assumes no observed home-path access; home accesses change the `ProtectHome=` candidate as described below. Systemd drop-in override files like `override.conf` require these directives under a `[Service]` section header.)*
 
 ### 2. `findings.txt` (Detailed Audit Report)
 A human-readable record listing every proposed directive alongside observed syscall counts, risk levels, and justifications:
@@ -97,9 +96,21 @@ When `--json <PATH>` is specified, writes the versioned report envelope (see [`d
 
 ---
 
-## Operational Model & Safety Boundaries
+## Scope & Technical Limitations
 
+Understanding what `sysdhardener` is-and is not-capable of is essential for proper evaluation and use:
+
+### Capabilities (In Scope)
+- **Derived Directives:** Derives `RestrictAddressFamilies=`, `CapabilityBoundingSet=`, `AmbientCapabilities=`, `ProtectSystem=`, `ProtectHome=`, `ProtectControlGroups=`, and prefix-clustered `ReadWritePaths=`.
+- **Dynamic Host Version Gating:** Queries active `systemd --version` to omit unsupported directives on older hosts.
+- **Dual Transparency:** Emits both concise drop-in candidates (`hardening.conf`) and evidence audit records (`findings.txt`), plus optional machine envelopes (`report.json`).
+
+### Boundaries & Limitations (Out of Scope)
 - **Recommendation Engine Only:** The tool **never applies** hardening directly to running services or unit files. All settings are provisional and unverified candidates that require validation in staging before use.
+- **Dynamic Profiling Window:** Observation is strictly dynamic. Syscalls and file paths not exercised during profiling (e.g. error handlers, log rotations, failover routines, periodic maintenance) will not generate events. Absence of evidence is *provisional*, never mathematical proof of non-use.
+- **Drop-In Section Header (`[Service]`):** Emitted `hardening.conf` contains raw key=value directives. Systemd drop-in override files (`override.conf`) require the `[Service]` header to be parsed (e.g. `{ echo "[Service]"; cat hardening.conf; } | sudo tee .../override.conf`).
+- **Unmodeled Directives:** Does **not** derive `SystemCallFilter=` (seccomp allow/block lists are deferred research), `MemoryDenyWriteExecute=`, `ProtectKernelTunables=`, `ProtectKernelModules=`, `PrivateTmp=`, `PrivateDevices=`, `ProtectClock=`, `RestrictNamespaces=`, or MAC/LSM policies (SELinux/AppArmor).
+- **Filesystem Context & Path Placement:** With observed accepted accesses under `/home`, `/root`, or `/run/user`, the candidate is `ProtectHome=read-only` from systemd v214, not `yes`. A candidate write exception is the observed path's parent cluster, not its siblings. On known v214-v230 hosts, a home write has no supported `ReadWritePaths=` exception (available since v231), so `ProtectHome` is omitted rather than blocking that observed write; protection is consequently not provided for that home access. From v231, the read-only candidate is paired with the derived exception when it is safely scoped. In one fresh Ubuntu 26.04/systemd 259.5/Redis 8.0.5 disposable-QEMU run (2026-10-11), `/root/data` writes succeeded and `/root/.ssh` writes failed read-only under a transient unit using the generated candidate. This validates only that case; candidates remain provisional and require validation on the target system.
 - **Root Privilege & Visibility:** `sysdhardener` is designed to run as **root** (required for `ptrace` across arbitrary service daemons and eBPF cgroups). Non-root execution is permitted but operates with degraded visibility and warns accordingly.
 - **Kernel & Architecture Scope:** Runtime observation derives purely from syscalls. Complex arbitrary mount namespace re-binds and non-syscall LSM audits (e.g. SELinux/AppArmor) are **deferred** research areas.
 - **Non-Invasive Execution:** On exit, observers cleanly detach, restoring process execution and signal state without residue.

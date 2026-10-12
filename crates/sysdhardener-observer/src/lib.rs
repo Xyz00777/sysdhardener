@@ -43,6 +43,7 @@ mod decode;
 mod fs_trace;
 mod ptrace_abi;
 mod signal;
+mod spawn;
 mod syscall;
 mod tracee;
 

@@ -175,9 +175,16 @@ if [ "$REDIS_RUNNING" -eq 1 ]; then
         exit 1
     fi
 else
+    # Remove any pre-existing or incompatible RDB snapshot before seeding fresh data
+    rm -f "$DATA_DIR/dump.rdb"
     "$REDIS_SERVER_BIN" "$SCRIPT_DIR/redis.conf" --daemonize yes
     STARTED_TEMP_REDIS=1
-    sleep 1
+    for i in $(seq 1 10); do
+        if $PYTHON_BIN -c "import socket; s = socket.socket(); s.settimeout(0.5); s.connect(('127.0.0.1', 6379)); s.close()" 2>/dev/null; then
+            break
+        fi
+        sleep 0.5
+    done
 fi
 
 echo "  Seeding university security module database records into Redis..."

@@ -247,6 +247,7 @@ mkdir -p /etc/systemd/system/demo-database.service.d/
 systemctl daemon-reload
 systemctl restart demo-database.service demo-web.service 2>/dev/null || true
 systemctl enable --now demo-database.service demo-web.service
+sleep 1 # Allow daemon socket initialization
 ```
 
 ---

@@ -5,14 +5,11 @@
 //! `ProtectControlGroups=`, and `ReadWritePaths=`.
 
 use crate::Capability;
-use crate::compatibility::{SupportStatus, VerificationStatus};
+use crate::filesystem_path::make_finding;
 use crate::finding::Finding;
 use crate::fixture::{CoverageQuality, EventOutcome};
 use crate::fs_cluster::{cluster_write_paths, touches};
-use crate::recommendation::{
-    CompatibilityRisk, EventLoss, FindingBasis, ProvisionalStatus, ValidationProcedure,
-};
-use crate::source_id::SourceId;
+use crate::recommendation::EventLoss;
 
 /// An observed filesystem access event.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,38 +113,6 @@ fn parse_fs_event(event: &crate::ObservedEvent) -> Option<FsAccessEvent> {
         return None;
     }
     Some(FsAccessEvent::new(path_str, is_write, event.outcome()))
-}
-
-fn make_finding(
-    directive: &'static str,
-    recommended_value: Option<String>,
-    coverage: CoverageQuality,
-    event_loss: EventLoss,
-) -> Finding {
-    Finding {
-        directive,
-        basis: FindingBasis::Observation {
-            observed: Vec::new(),
-        },
-        observed_families: Vec::new(),
-        recommended_families: Vec::new(),
-        not_observed_families: Vec::new(),
-        recommended_capabilities: Vec::new(),
-        host_supported: true,
-        recommended_value,
-        provisional: ProvisionalStatus::Provisional,
-        coverage,
-        event_loss,
-        contradiction_conditions: Vec::new(),
-        compatibility_risk: CompatibilityRisk {
-            support: SupportStatus::Supported,
-            verification: VerificationStatus::Unverified,
-            source_ref: SourceId::from_static("SRC-01"),
-        },
-        validation_procedure: ValidationProcedure::ConfirmNoOutOfSetUse,
-        source_ids: vec![SourceId::from_static("SRC-01")],
-        aggregate_keys: Vec::new(),
-    }
 }
 
 /// Derive provisional filesystem hardening recommendations from observed accesses,

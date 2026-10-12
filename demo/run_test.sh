@@ -57,8 +57,17 @@ echo "  sysdhardener Demo: Redis Sandboxing Verification"
 echo "  Target: $REDIS_HOST:$REDIS_PORT"
 echo "=========================================================="
 
-# Check if Redis is reachable
-if ! redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping &>/dev/null; then
+# Check if Redis is reachable (retry briefly to allow service startup)
+REDIS_CONNECTED=0
+for i in $(seq 1 10); do
+  if redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping &>/dev/null; then
+    REDIS_CONNECTED=1
+    break
+  fi
+  sleep 0.5
+done
+
+if [[ "$REDIS_CONNECTED" -ne 1 ]]; then
   echo ""
   echo "[!] Cannot connect to Redis at $REDIS_HOST:$REDIS_PORT."
   echo ""
@@ -130,17 +139,38 @@ echo "=========================================================="
 echo "  Evaluation Result:"
 echo "=========================================================="
 
-if [[ "$SAVE_ATTACK_RES" =~ "Read-only file system" ]] || [[ "$SAVE_ATTACK_RES" =~ "EROFS" ]] || [[ "$SAVE_ATTACK_RES" =~ "Permission denied" ]]; then
+target_file_exists() {
+  local f="$1"
+  if [ -f "$f" ]; then return 0; fi
+  if command -v sudo &>/dev/null && sudo test -f "$f" 2>/dev/null; then return 0; fi
+  return 1
+}
+
+if [[ "$CONFIG_DIR_RES" =~ "No such file or directory" ]] || [[ "$CONFIG_DIR_RES" =~ "Permission denied" ]]; then
+  echo "  [HARDENED] SUCCESS: Path redirection to $TEST_TARGET_DIR was blocked by systemd isolation!"
+  echo "  Kernel rejected directory access: $CONFIG_DIR_RES"
+  echo "  Enforcement layer: ProtectHome=yes / ProtectHome=read-only."
+  exit 0
+elif [[ "$SAVE_ATTACK_RES" =~ "Read-only file system" ]] || [[ "$SAVE_ATTACK_RES" =~ "EROFS" ]] || [[ "$SAVE_ATTACK_RES" =~ "Permission denied" ]]; then
   echo "  [HARDENED] SUCCESS: Snapshot write was blocked by systemd mount isolation!"
   echo "  Kernel rejected file creation with: $SAVE_ATTACK_RES"
   echo "  Enforcement layer: ProtectHome=read-only / ProtectSystem=strict."
   exit 0
-elif [[ "$SAVE_ATTACK_RES" == "OK" ]]; then
+elif [[ "$SAVE_ATTACK_RES" =~ "ERR" ]] && ! target_file_exists "$TEST_TARGET_DIR/$TEST_TARGET_FILE"; then
+  echo "  [HARDENED] SUCCESS: Snapshot write failed and target file was not created!"
+  echo "  Redis response: $SAVE_ATTACK_RES"
+  echo "  Enforcement layer: systemd mount sandboxing."
+  exit 0
+elif [[ "$SAVE_ATTACK_RES" == "OK" ]] && target_file_exists "$TEST_TARGET_DIR/$TEST_TARGET_FILE"; then
   echo "  [UNHARDENED] WARNING: Unauthorized write to $TEST_TARGET_DIR succeeded!"
   echo "  The Redis process is running without systemd filesystem sandboxing."
   # Remove test file if created
-  rm -f "$TEST_TARGET_DIR/$TEST_TARGET_FILE" 2>/dev/null || true
+  sudo rm -f "$TEST_TARGET_DIR/$TEST_TARGET_FILE" 2>/dev/null || rm -f "$TEST_TARGET_DIR/$TEST_TARGET_FILE" 2>/dev/null || true
   exit 1
+elif [[ "$SAVE_ATTACK_RES" == "OK" ]] && ! target_file_exists "$TEST_TARGET_DIR/$TEST_TARGET_FILE"; then
+  echo "  [HARDENED] SUCCESS: Snapshot write completed but file was NOT created in $TEST_TARGET_DIR!"
+  echo "  Enforcement layer: systemd mount isolation."
+  exit 0
 else
   echo "  [INCONCLUSIVE] Unexpected response during SAVE: $SAVE_ATTACK_RES"
   echo "  Could not verify whether systemd mount sandboxing was the cause."

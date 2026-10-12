@@ -50,3 +50,39 @@ pub(crate) fn serialize_write_paths(paths: &[String]) -> Option<String> {
     }
     Some(rendered.join(" "))
 }
+
+#[allow(
+    clippy::redundant_pub_crate,
+    reason = "the sibling filesystem module calls this finding constructor"
+)]
+pub(crate) fn make_finding(
+    directive: &'static str,
+    recommended_value: Option<String>,
+    coverage: crate::fixture::CoverageQuality,
+    event_loss: crate::recommendation::EventLoss,
+) -> crate::finding::Finding {
+    crate::finding::Finding {
+        directive,
+        basis: crate::recommendation::FindingBasis::Observation {
+            observed: Vec::new(),
+        },
+        observed_families: Vec::new(),
+        recommended_families: Vec::new(),
+        not_observed_families: Vec::new(),
+        recommended_capabilities: Vec::new(),
+        host_supported: true,
+        recommended_value,
+        provisional: crate::recommendation::ProvisionalStatus::Provisional,
+        coverage,
+        event_loss,
+        contradiction_conditions: Vec::new(),
+        compatibility_risk: crate::recommendation::CompatibilityRisk {
+            support: crate::compatibility::SupportStatus::Supported,
+            verification: crate::compatibility::VerificationStatus::Unverified,
+            source_ref: crate::source_id::SourceId::from_static("SRC-01"),
+        },
+        validation_procedure: crate::recommendation::ValidationProcedure::ConfirmNoOutOfSetUse,
+        source_ids: vec![crate::source_id::SourceId::from_static("SRC-01")],
+        aggregate_keys: Vec::new(),
+    }
+}

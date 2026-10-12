@@ -27,6 +27,7 @@ mod aggregate;
 mod analysis;
 mod capability;
 mod compatibility;
+mod detailed_entry;
 mod error;
 pub mod filesystem;
 mod filesystem_path;

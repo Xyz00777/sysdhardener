@@ -44,7 +44,7 @@ use sysdhardener_core::attempt_all_sinks;
 use sysdhardener_core::exit_code_to_u8;
 use sysdhardener_core::run_analysis_from_fixture;
 use sysdhardener_core::usage_exit_code;
-use sysdhardener_observer::{observe_command, observe_pid_with_duration};
+use sysdhardener_observer::observe_pid_with_duration;
 
 use crate::cli::AnalyzeFixtureArgs;
 use crate::cli::AttachArgs;
@@ -104,14 +104,16 @@ pub fn run_observe(args: &ObserveArgs) -> ProcessOutcome {
     let mut command = Command::new(program);
     command.args(rest);
 
-    let events = match observe_command(&mut command) {
-        Ok(events) => events,
+    let observation = match sysdhardener_observer::observe_command_with_status(&mut command) {
+        Ok(observation) => observation,
         Err(error) => {
             return ProcessOutcome::ProcessingFailed(sysdhardener_core::Error::Io {
                 context: format!("observer failed: {error}"),
             });
         }
     };
+    crate::target_status::report(observation.target_status());
+    let events = observation.into_events();
     tracing::info!(
         target: "sysdhardener.cli",
         captured_events = events.len(),

@@ -143,7 +143,7 @@ fn daemon_writing_to_usr_disables_protect_system() {
 }
 
 #[test]
-fn daemon_accessing_home_disables_protect_home() {
+fn daemon_accessing_home_gets_read_only_protect_home() {
     let mut aggregator = FsAggregator::new();
 
     // Reads /home/alice/.config
@@ -158,7 +158,13 @@ fn daemon_accessing_home_disables_protect_home() {
         Capability::ExpectedRoot,
         CoverageQuality::Complete,
     );
-    assert!(!findings.iter().any(|f| f.directive() == "ProtectHome"));
+    assert_eq!(
+        findings
+            .iter()
+            .find(|finding| finding.directive() == "ProtectHome")
+            .and_then(|finding| finding.recommended_value()),
+        Some("read-only")
+    );
 }
 
 #[test]

@@ -51,7 +51,7 @@ pub fn observe_pid_with_duration(
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     let _sig_guard = install_forward_handlers();
     let attached = attach_to_pid(pid)?;
-    run_trace_loop(&attached, TraceMode::Attach, duration_ms)
+    run_trace_loop(&attached, TraceMode::Attach, duration_ms).map(|capture| capture.events)
 }
 
 /// Enumerate all active thread IDs (TIDs) for a process from `/proc/<pid>/task/`.

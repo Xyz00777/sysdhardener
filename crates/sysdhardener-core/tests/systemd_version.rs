@@ -111,9 +111,20 @@ fn known_directives_have_introduced_versions() {
     assert_eq!(directive_introduced_in("AmbientCapabilities"), Some(229));
     assert_eq!(
         directive_introduced_in("RestrictAddressFamilies"),
-        Some(235)
+        Some(211)
     );
     assert_eq!(directive_introduced_in("UnknownDirective"), None);
+}
+
+#[test]
+fn restrict_address_families_is_unsupported_before_211_and_supported_at_211() {
+    for (major, supported) in [(210, false), (211, true), (234, true), (235, true)] {
+        assert_eq!(
+            directive_supported(Some(SystemdVersion { major }), 211),
+            supported,
+            "unexpected RAF support at systemd v{major}"
+        );
+    }
 }
 
 #[test]

@@ -98,13 +98,13 @@ pub fn probe_host_systemd_version() -> Option<SystemdVersion> {
 /// Upstream provenance:
 /// - `CapabilityBoundingSet=` has been supported since systemd v1.
 /// - `AmbientCapabilities=` was introduced in systemd v229 (SRC-01).
-/// - `RestrictAddressFamilies=` was introduced in systemd v235 (SRC-01).
+/// - `RestrictAddressFamilies=` was introduced in systemd v211 (v211/NEWS).
 #[must_use]
 pub fn directive_introduced_in(directive: &str) -> Option<u32> {
     match directive {
         "CapabilityBoundingSet" => Some(1),
         "AmbientCapabilities" => Some(229),
-        "RestrictAddressFamilies" => Some(235),
+        "RestrictAddressFamilies" => Some(211),
         "ProtectSystem" | "ProtectHome" => Some(214),
         "ProtectControlGroups" => Some(232),
         "ReadWritePaths" => Some(231),

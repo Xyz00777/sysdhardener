@@ -1,0 +1,8 @@
+# Runtime and profiling output artifacts for demo
+data/*.rdb
+data/*.txt
+!data/.gitkeep
+logs/
+observed-*/
+__pycache__/
+*.pyc

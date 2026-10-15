@@ -100,7 +100,7 @@ fn degraded_fixture_surfaces_loss_counts() {
         0,
         "degraded fixture declares 0 dropped events"
     );
-    assert!(source.coverage() != CoverageQuality::Complete);
+    assert_ne!(source.coverage(), CoverageQuality::Complete);
 }
 
 #[test]

@@ -43,13 +43,16 @@ mod decode;
 mod fs_trace;
 mod ptrace_abi;
 mod signal;
+mod spawn;
 mod syscall;
 mod tracee;
 
 pub use attach::{observe_pid, observe_pid_with_duration, systemd_unit_from_cgroup};
-pub use capture::{ObserveError, PtraceObserver, observe_command};
+pub use capture::{ObserveError, PtraceObserver, observe_command, observe_command_with_status};
 pub use decode::{
     DecodedSyscall, OBSERVER_SOURCE_ID, decode_syscall, decode_syscall_indexed,
     decode_syscall_indexed_fs,
 };
 pub use syscall::{KNOWN_UNDELIVERED_SYSCALLS, SyscallNumber, syscall_number_from_regs};
+mod process_status;
+pub use process_status::{ObservationResult, TargetStatus};

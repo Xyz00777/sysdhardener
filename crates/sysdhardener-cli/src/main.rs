@@ -36,6 +36,7 @@ pub(crate) mod cli;
 pub(crate) mod cli_observe;
 pub(crate) mod outcome_map;
 pub(crate) mod sinks_select;
+pub(crate) mod target_status;
 pub(crate) mod tracing_init;
 
 use std::process::ExitCode;
